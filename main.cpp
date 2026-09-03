@@ -13,26 +13,11 @@ int main() {
 	filesystem::path path = "C:\\Windows\\System32\\calc.exe";
 	PEFile pe(path);
 
-	//cout << pe.fileSize() << endl; 
+	if (!pe.parseHeaders()) {
+		return 1;
+	}
 
 
 
 	return 0;
 }
-
-
-
-
-
-
-
-
-
-/*
-
-	After MS-DOS stub, at file offset 0x3c, is the fill offset to the PE signature
-	[base + 0x3c] -> PE signature
-
-	PE signature contains PE\0\0 (four bytes)
-
-*/

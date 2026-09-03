@@ -27,33 +27,46 @@ PEFile::PEFile(const std::filesystem::path& path) {
 
 	file.close();
 
-	dosHeader_ = reinterpret_cast<IMAGE_DOS_HEADER*>(data_.data()); // .data() is effectively the address of the DOS header, reinterpret cast just casts that address as if its pointing to an IMAGE_DOS_HEADER structure (which it is)
-	// Most of the DOS header is not needed, the first two bytes are MZ / 0x5A4D (e_magic), and at +0x3C, is a four byte offset to the PE header (IMAGE_NT_HEADERS64)
-	if(dosHeader_->e_magic != 0x5A4D) {
-		std::cerr << "Invalid e_magic " << std::endl;
-	}
-	else {
-		print_bytes(&dosHeader_->e_magic, sizeof(dosHeader_->e_magic));
-	}
 
-	ntHeaders_ = reinterpret_cast<IMAGE_NT_HEADERS64*>(data_.data() + dosHeader_->e_lfanew);
-	print_bytes(&ntHeaders_->Signature, sizeof(ntHeaders_->Signature));
-
-
-
-
-
-
-
-
+	// Validate DOS first
+	if (!validateDos()) { return; }
+	const IMAGE_DOS_HEADER* dosHeader;
+	
 
 
 }
 
-std::size_t PEFile::fileSize() const { return this->size_; }
+std::size_t PEFile::fileSize() const { return size_; }
 
-bool PEFile::parseHeaders() { return true; }
+bool PEFile::parseHeaders() { 
 
+
+	const IMAGE_DOS_HEADER* dos = dosHeader();
+	if (!dos || !validateDos()) {
+		return false;
+	}
+
+	const IMAGE_NT_HEADERS64* nt = ntHeaders();
+	if (!nt || !validateNt()) {
+		return false;
+	}
+
+	const IMAGE_FILE_HEADER* file = fileHeader();
+	if (!file || !validateFileHeader()) { 
+		return false; 
+	}
+
+	const IMAGE_OPTIONAL_HEADER* optional = optionalHeader();
+	if (!optional || !validateOptionalHeader()) {
+		return false;
+	}
+
+
+
+
+
+	return true; 
+}
 
 
 void PEFile::print_bytes(const void* data, std::size_t size) {
@@ -66,3 +79,75 @@ void PEFile::print_bytes(const void* data, std::size_t size) {
 	}
 	std::printf("\n");
 }
+
+
+//*********************************************************************************************************//
+// Accessors
+//*********************************************************************************************************//
+template<typename T> const T* PEFile::view(size_t offset) const {
+	// Returns address of (data_.data() + offset) cast to T*
+	// Assumes [offset + sizeof(T)] is the base of a valid structure of T and is aligned properly
+
+	if (offset + sizeof(T) > size_) { return nullptr; }
+
+	return reinterpret_cast<const T*>(data_.data() + offset);
+}
+
+const IMAGE_DOS_HEADER* PEFile::dosHeader() const {
+	return view<const IMAGE_DOS_HEADER>(0);
+}
+
+const IMAGE_NT_HEADERS64* PEFile::ntHeaders() const {
+
+	const IMAGE_DOS_HEADER* dos = dosHeader();
+	if (!dos) {
+		return nullptr;
+	}
+
+	return view<const IMAGE_NT_HEADERS64>(dos->e_lfanew);
+}
+
+const IMAGE_FILE_HEADER* PEFile::fileHeader() const {
+	const IMAGE_NT_HEADERS64* nt = ntHeaders();
+	if (!nt) { 
+		return nullptr; 
+	}
+
+	return &nt->FileHeader;
+}
+
+const IMAGE_OPTIONAL_HEADER* PEFile::optionalHeader() const {
+	const IMAGE_NT_HEADERS64* nt = ntHeaders();
+	if (!nt) {
+		return nullptr;
+	}
+
+	return &nt->OptionalHeader;
+}
+
+
+
+
+//*********************************************************************************************************//
+// Validation
+//*********************************************************************************************************//
+
+bool PEFile::validateDos() const {
+	return (dosHeader()->e_magic == IMAGE_DOS_SIGNATURE);
+}
+
+bool PEFile::validateNt() const {
+	return (ntHeaders()->Signature == IMAGE_NT_SIGNATURE);
+}
+
+bool PEFile::validateFileHeader() const {
+	std::cout << "Implement validateFileHeader" << std::endl;
+	return true;
+}
+
+bool PEFile::validateOptionalHeader() const {
+	std::cout << "Implement validateOptionalHeader" << std::endl;
+	return true;
+}
+
+
