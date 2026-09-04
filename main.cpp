@@ -9,15 +9,22 @@
 
 using namespace std;
 
-int main() {
-	filesystem::path path = "C:\\Windows\\System32\\calc.exe";
+int main(int argc, char* argv[]) {
+
+	filesystem::path path;
+
+	if (argc < 2) {
+		path = "C:\\Windows\\System32\\calc.exe";
+	}
+	else {
+		path = argv[1];
+	}
+
 	PEFile pe(path);
 
 	if (!pe.parseHeaders()) {
 		return 1;
 	}
-
-
 
 	return 0;
 }
