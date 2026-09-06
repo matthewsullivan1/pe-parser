@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <span>
 #include <string>
 #include <windows.h>
 #include <filesystem>
@@ -18,7 +19,8 @@ public:
 	const IMAGE_FILE_HEADER* fileHeader()			const; // return pointer to file header
 	const IMAGE_OPTIONAL_HEADER* optionalHeader()	const; // return pointer to optional header
 	const IMAGE_DATA_DIRECTORY* dataDirectorty()	const; // return pointer to data directory base address
-	const IMAGE_SECTION_HEADER* sectionHeader()		const; // return pointer to section header base address 
+	const IMAGE_SECTION_HEADER* sectionHeader()		const; // return pointer to section header base address
+	std::span<const IMAGE_SECTION_HEADER> sections() const; // return array of pointers for each section
 
 	bool parseHeaders();
 	void print_bytes(const void* data, std::size_t size);
